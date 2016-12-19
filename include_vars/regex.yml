@@ -1,0 +1,4 @@
+    regexp33: '3.3.\.*'
+    regexexport: '6.0.\.*'
+    regexpappsrv: '6.0.0.\.*'
+    regexp55: '5.5.42774.\.*'

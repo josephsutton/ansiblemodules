@@ -1,0 +1,4 @@
+    regexnew33: 'MediaTools-3.3.\.*.msi'
+    regexnewexport: 'ExportService-6.0.\.*.msi'
+    regexnewappsrv: 'AppServerServices-6.0.\.*.msi'
+    regexnew55: 'MediaTools-5.5.42774.\.*.msi'
