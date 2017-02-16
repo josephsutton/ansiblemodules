@@ -1,0 +1,15 @@
+---
+  - include_vars: /etc/ansible/include_vars/regex.yml
+  - name: Check installed version of Application 3.33
+    win_appver: 
+      service: "Application"
+    register: mt33
+  - set_fact:
+      old33ver: "{{ mt33.win_appver | regex_replace(regexp33) }}"
+  - name: Check installed version of Application export service
+    win_appver: 
+      service: "ExportService"
+    register: expsrv
+  - set_fact:
+      oldexportver: "{{ expsrv.win_appver | regex_replace(regexexport) }}"
+

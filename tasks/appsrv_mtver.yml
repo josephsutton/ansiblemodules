@@ -1,0 +1,14 @@
+---
+  - include_vars: /etc/ansible/include_vars/regex.yml
+  - name: Check installed version of Application appserver
+    win_appver: 
+      service: "AppServerServices"
+    register: appsrv
+  - set_fact:
+      oldappsrvver: "{{ appsrv.win_appver | regex_replace(regexpappsrv) }}"
+  - name: Check installed version of Application 5.5
+    win_appver: 
+      service: "Application 5.5"
+    register: old55ver
+  - set_fact:
+      old55ver: "{{ old55ver.win_appver | regex_replace(regexp55) }}"

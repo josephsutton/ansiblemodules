@@ -1,0 +1,22 @@
+---
+  - include_vars: /etc/ansible/include_vars/new_regex.yml
+  - include_vars: /etc/ansible/include_vars/regex.yml
+  - name: Check New build numbers
+    find: 
+      path: /etc/ansible/Application-files/{{ version }}
+      pattern: "{{ regexnew33 }}"
+    register: newmt33
+  - set_fact:
+      new33ver: "{{ newmt33.find | regex_replace(regexp33) }}"
+#  - name: Check installed version of Application export service
+#    register: newexpsrv
+#  - set_fact:
+#      newexportver: "{{ expsrv.win_appver | regex_replace(regexnewexport) }}"
+#  - name: Check installed version of Application appserver
+#    register: newappsrv
+#  - set_fact:
+#      newappsrvver: "{{ appsrv.win_appver | regex_replace(regexnewappsrv) }}"
+#  - name: Check installed version of Application 5.5
+#    register: new55ver
+#  - set_fact:
+#      new55ver: "{{ new55ver.win_appver | regex_replace(regexnew55) }}"
