@@ -1,0 +1,147 @@
+---
+- name: Release Update for Application App Servers
+  hosts: dr-appsrv
+  vars:
+    newver: 4028
+    new33ver: 3280
+  tasks:
+    - name: Import variables and tasks
+      include_vars: 
+        dir: /etc/ansible/include_vars/
+    - name: Checking App server version
+      include_tasks: /etc/ansible/tasks/appsrv_mtver.yml 
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Checking Export server version
+      include_tasks: /etc/ansible/tasks/export_mtver.yml
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Create Date Folder
+      win_file: path=c:\Installs\{{ newver }} state=directory
+    - name: Copy Application 5.5 Installation
+      win_copy: src=/etc/ansible/Application-files/{{ newver }}/Application.{{ newver }}.msi dest=c:\\Installs\\{{ newver }}\\ApplicationWebsite.{{ newver }}.msi
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Copy Application 3.3 Installation
+      win_copy: src=/etc/ansible/Application-files/{{ newver }}/Application.{{ new33ver }}.msi dest=c:\\Installs\\{{ newver }}\\Application.{{ new33ver }}.msi
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Copy Application App Server Installation
+      win_copy: src=/etc/ansible/Application-files/{{ newver }}/AppServerServices.{{ newver }}.msi dest=c:\\Installs\\{{ newver }}\\AppServerServices.{{ newver }}.msi
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Copy Export Server Installation
+      win_copy: src=/etc/ansible/Application-files/{{ newver }}/ExportService.{{ newver }}.msi dest=c:\\Installs\\{{ newver }}\\ExportService.{{ newver }}.msi
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Stop Data Host Service
+      win_service: 
+        name: "Application Data Host"
+        state: stopped
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Stop Event Monitor Service
+      win_service: 
+        name: "Application Event Monitor"
+        state: stopped
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Stop Export Service
+      win_service: 
+        name: "Application Export Service"
+        state: stopped 
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Backup App Server Settings.xml
+      win_copy: 
+         src: C:\Program Files (x86)\Application\Settings.xml
+         dest: C:\Program Files (x86)\Settings.xml
+         remote_src: True
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Backup export Server Settings.xml
+      win_copy: 
+         src: C:\Program Files (x86)\Export Service\Settings.xml
+         dest: C:\Program Files (x86)\Settings.xml
+         remote_src: True
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Uninstall App server
+      win_package: 
+          path: c:\\Installs\\{{ oldappsrvver }}\\AppServerServices.{{ oldappsrvver }}.msi
+          extra_args: /qn
+          present: absent
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Delete AppServer files
+      win_file: 
+          path: C:\\Program Files (x86)\\\Application 
+          state: absent
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Uninstall Export Service
+      win_package: 
+          path: c:\\Installs\\{{ oldexportver }}\\ExportService.{{ oldexportver }}.msi
+          extra_args: /qn
+          present: absent
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Delete Export Service files
+      win_file: 
+          path: C:\\Program Files (x86)\\\Export Service
+          state: absent
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Uninstall 5.5 desktop
+      win_package: 
+          path: c:\\Installs\\{{ old55ver }}\\ApplicationWebsite.{{ old55ver }}.msi
+          extra_args: /qn
+          present: absent
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Uninstall 3.3 desktop
+      win_package: 
+          path: c:\\Installs\\{{ oldexportver }}\\Application.{{ old33ver }}.msi
+          extra_args: /qn
+          present: absent
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Install Application 5.5 App
+      win_package: 
+          path: c:\\Installs\\{{ newver }}\\ApplicationWebsite.{{ newver }}.msi
+          extra_args: /qn
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Install Application 3.3 App
+      win_package: 
+          path: c:\\Installs\\{{ newver }}\\Application.{{ new33ver }}.msi
+          extra_args: /qn
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Install Application App Server
+      win_package: 
+          path: c:\\Installs\\{{ newver }}\\AppServerServices.{{ newver }}.msi
+          extra_args: /qn
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Install Application Export Server
+      win_package: 
+          path: c:\\Installs\\{{ newver }}\\ExportService.{{ newver }}.msi
+          extra_args: /qn
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Copy App Server Settings.xml
+      win_copy: 
+         src: C:\Program Files (x86)\Settings.xml
+         dest: C:\Program Files (x86)\Application\Settings.xml
+         remote_src: True
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Copy export Server Settings.xml
+      win_copy: 
+         src: C:\Program Files (x86)\Settings.xml
+         dest: C:\Program Files (x86)\Export Service\Settings.xml
+         remote_src: True
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Set data host Service Recovery options
+      script: /etc/ansible/Application-files/scripts/set-srvrecovery.bat
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Set export Service Recovery options
+      script: /etc/ansible/Application-files/scripts/set-srvrecovery-export.bat
+      when: inventory_hostname == "dr-export.services.local"
+    - name: Set Data Host Service to auto
+      win_service: 
+        name: "Application Data Host"
+        state: restarted
+        start_mode: auto
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Set Event Monitor Service to auto
+      win_service: 
+        name: "Application Event Monitor"
+        state: restarted
+        start_mode: auto
+      when: inventory_hostname != "dr-export.services.local"
+    - name: Set Export Service to auto
+      win_service: 
+        name: "ApplicationExportService"
+        state: restarted
+        start_mode: auto
+      when: inventory_hostname == "dr-export.services.local"

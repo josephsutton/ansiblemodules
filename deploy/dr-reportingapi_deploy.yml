@@ -1,0 +1,12 @@
+---
+- name: Deploy ReportingAPI for MTReportingPro
+  hosts: dr-webapi
+  vars: 
+    builddate: 2017-09-25
+  tasks:
+    - name: Copy ReportingAPI Files
+      win_copy: src=/etc/ansible/Application-files/ReportingAPI/ReportingAPI_{{ builddate }}.zip dest=c:\\installs\\
+    - name: Cleaning up installs directory
+      script: /etc/ansible/Application-files/scripts/win_filecleanup.ps1 -days 0 -path "c:\inetpub\wwwroot\ReportingAPI"
+    - name: Unzip ReportingAPI Files
+      script: /etc/ansible/Application-files/scripts/extract-deployment.ps1 "c:\installs\ReportingAPI_{{ builddate }}.zip" "c:\inetpub\wwwroot\ReportingAPI"

@@ -1,0 +1,15 @@
+---
+- name: Deploy WebAPI for Website
+  hosts: dr-webapi
+  vars: 
+    builddate: 2017-11-09
+  tasks:
+    - name: Copy WebAPI Files
+      win_copy: src=/etc/ansible/Application-files/WebAPI/WebAPI_{{ builddate }}.zip dest=c:\\installs\\
+    - name: Cleaning up installs directory
+      script: /etc/ansible/Application-files/scripts/win_filecleanup.ps1 -days 0 -path "c:\inetpub\wwwroot\WebAPI"
+    - name: Unzip WebAPI Files
+      script: /etc/ansible/Application-files/scripts/extract-deployment.ps1 "c:\installs\WebAPI_{{ builddate }}.zip" "c:\inetpub\wwwroot\WebAPI"
+    - name: test webpage
+      win_uri: 
+        url: https://{{ansible_hostname}}.Application.com/WebApi/api/Storage/VerifyApiIsUp?inputString=w00t

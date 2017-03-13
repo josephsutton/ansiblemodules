@@ -1,0 +1,61 @@
+---
+- name: Release Update for Application Task Servers
+  hosts: dr-tasks
+  vars:
+     newver: 3939
+  tasks:
+    - name: Import variables and tasks
+      include_vars: 
+        dir: /etc/ansible/include_vars/
+    - name: Checking App server version
+      include_tasks: /etc/ansible/tasks/appsrv_mtver.yml 
+    - name: Create Date Folder
+      win_file: path=c:\Installs\{{ newver }} state=directory
+    - name: Copy Application App Server Installation
+      win_copy: src=/etc/ansible/Application-files/{{ newver }}/AppServerServices.{{ newver }}.msi dest=c:\\Installs\\{{ newver }}\\AppServerServices.{{ newver }}.msi
+    - name: Stop Task 50 Monitor Service
+      win_service: 
+        name: "Application50TaskService"
+        state: stopped
+    - name: Uninstall App server
+      win_package: 
+          path: c:\\Installs\\{{ oldappsrvver }}\\AppServerServices.{{ oldappsrvver }}.msi
+          extra_args: /qn
+          present: absent
+    - name: Delete AppServer files
+      win_file: 
+          path: C:\\Program Files (x86)\\\Application 
+          state: absent
+    - name: Install Application App Server
+      win_package: 
+          path: c:\\Installs\\{{ newver }}\\AppServerServices.{{ newver }}.msi
+          extra_args: /qn
+    - name: Set data host Service Recovery options
+      script: /etc/ansible/Application-files/scripts/set-srvrecovery-task.bat
+    - name: Copy Task Server key Application.ppk
+      win_copy: 
+         src: /etc/ansible/Application-files/Application.ppk
+         dest: C:\\Program Files (x86)\\\Application\\Application.ppk
+    - name: Copy Task Server key Application-pg.ppk
+      win_copy: 
+         src: /etc/ansible/Application-files/Application-pg.ppk
+         dest: C:\\Program Files (x86)\\\Application\\Application-client.ppk
+    - name: Copy TaskMonitor.exe.config
+      win_copy: 
+         src: /etc/ansible/Application-files/TaskMonitor.exe.config
+         dest: C:\\Program Files (x86)\\\Application\\Monitor.exe.config
+    - name: Set Data Host Service to auto
+      win_service: 
+        name: "Application50TaskService"
+        state: stopped
+        start_mode: manual
+    - name: Set Application Data Host Service to auto
+      win_service:
+        name: "Application Data Host"
+        state: stopped
+        start_mode: manual
+    - name: Set Application Event Monitor Service to auto
+      win_service:
+        name: "Application Event Monitor"
+        state: stopped
+        start_mode: manual
