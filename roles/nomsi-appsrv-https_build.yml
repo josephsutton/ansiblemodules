@@ -1,0 +1,65 @@
+---
+- name: build App server without MSIs
+  hosts: test-deploy-export
+  vars:
+    appversion: 1984
+  tasks:     
+    - name: Add Application User
+      win_user: 
+        name: appuser 
+        password: P@ssw0rd 
+        state: present 
+        groups_action: remove 
+        password_never_expires: true
+    - name: Check Cert existence
+      action: win_cert thumb=1234567890abcdef0987654321abcdef12345678
+      register: output
+      ignore_errors: true
+    - debug: var=output.cert_check
+    - name: Copy Current Cert on failed check
+      win_copy: 
+        src: /etc/ansible/Application-files/Application-2019.pfx
+        dest: C:\\installs
+      when: output.cert_check == "fail"
+    - name: Install Cert on failed check
+      script: /etc/ansible/Application-files/scripts/certswaphttps.bat
+      when: output.cert_check == "fail"
+    - name: Create Install Folder
+      win_file: path=c:\Installs\{{ appversion }} state=directory
+    - name: Copy Application Installation Files
+      win_copy: 
+        src: /etc/ansible/Application-files/appServerStage_{{ appversion }}.zip 
+        dest: c:\\installs\\
+    - name: Install MSMQ
+      win_feature:
+       name: MSMQ-server
+       State: present
+       restart: no
+    - name: Set MSMQ to auto
+      win_service:
+        name: msmq
+        state: started
+        start_mode: auto
+    - name: Unzip Application deployment
+      script: /etc/ansible/Application-files/scripts/extract-appdeployment.ps1 "c:\installs\appServerStage_{{ appversion }}.zip" "C:\"
+    - name: register app server DLLs
+      script: /etc/ansible/Application-files/scripts/rereg.bat
+      ignore_errors: yes
+    - name: Create App server Services for Application Server software
+      script: /etc/ansible/Application-files/scripts/createAppSVC-nomsi.bat
+    - name: Set Service Recovery options
+      script: /etc/ansible/Application-files/scripts/set-srvrecovery.bat
+    - name: Copy App Server Settings.xml
+      win_copy: 
+         src: /etc/ansible/Application-files/https.settings.xml 
+         dest: C:\appServerStage\Settings.xml
+    - name: Set Application Data Host Service to auto
+      win_service:
+        name: "Application Data Host"
+        state: restarted
+        start_mode: auto
+    - name: Set Application Event Monitor Service to auto
+      win_service:
+        name: "Application Event Monitor"
+        state: restarted
+        start_mode: auto

@@ -1,0 +1,68 @@
+---
+- name: build App server
+  hosts: test-deploy-app
+  vars:
+    appver: 1984
+  tasks:     
+    - name: Add yourapplication User
+      win_user: 
+        name: appuser 
+        password: password 
+        state: present 
+        groups_action: remove 
+        password_never_expires: true
+    - name: Check Cert existence
+      action: win_cert thumb=1234567890abcdef0987654321abcdef12345678
+      register: output
+      ignore_errors: true
+    - debug: var=output.cert_check
+    - name: Copy Current Cert on failed check
+      win_copy: 
+        src: /etc/ansible/yourapphere-files/yourfilehere.txt
+        dest: C:\\installs\\
+      when: output.cert_check == "fail"
+    - name: Install Cert on failed check
+      script: /etc/ansible/yourapphere-files/scripts/certswaphttps.bat
+      when: output.cert_check == "fail"
+    - name: Create Date Folder
+      win_file: path=c:\Installs\{{ appver }} state=directory
+    - name: Copy yourapphere Installation Files
+      win_copy: src=/etc/ansible/yourapphere-files/{{ appver }}/yourapphere.{{ appver }}.msi dest=c:\\installs\\{{ appver }}\\yourapphere.{{ appver }}.msi
+    - name: Copy yourapphere Appserver Installation Files
+      win_copy: src=/etc/ansible/yourapphere-files/{{ appver }}/AppServerServices-6.0.{{ appver }}.msi dest=c:\\installs\\{{ appver }}\\AppServerServices-6.0.{{ appver }}.msi
+    - name: Install MSMQ
+      win_feature:
+       name: MSMQ-server
+       State: present
+       restart: no
+    - name: Set MSMQ to auto
+      win_service:
+        name: msmq
+        state: started
+        start_mode: auto
+    - name: Install yourapphere App
+      win_package: 
+          path: c:\\Installs\\{{ appver }}\\yourapphere.{{ appver }}.msi
+          extra_args: /qn
+    - name: Install yourapphere App Server
+      win_package: 
+          path: c:\\installs\\{{ appver }}\\AppServerServices-6.0.{{ appver }}.msi
+          extra_args: /qn
+    - name: Create App server Services for yourapphere Server software
+      script: /etc/ansible/yourapphere-files/scripts/createAppSVC.bat
+    - name: Set Service Recovery options
+      script: /etc/ansible/yourapphere-files/scripts/set-srvrecovery.bat
+    - name: Copy App Server Settings.xml
+      win_copy: 
+         src: /etc/ansible/yourapphere-files/https.settings.xml 
+         dest: C:\\Program Files (x86)\\yourapphere\\Settings.xml
+    - name: Set yourapphere Data Host Service to auto
+      win_service:
+        name: "yourapphere Data Host"
+        state: restarted
+        start_mode: auto
+    - name: Set yourapphere Event Monitor Service to auto
+      win_service:
+        name: "yourapphere Event Monitor"
+        state: restarted
+        start_mode: auto

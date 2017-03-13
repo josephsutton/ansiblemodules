@@ -1,0 +1,90 @@
+---
+- name: build App server
+  hosts: prod-tasks
+  vars:
+    appversion: 3450
+    apppath: 3450
+  tasks:     
+    - name: Add ApplicationName User
+      win_user: 
+        name: mt50user 
+        password: 123letmein!@# 
+        state: present 
+        groups_action: remove 
+        password_never_expires: true
+    - name: Check Cert existence
+      action: win_cert thumb=1234567890987654321123456789098765432112
+      register: output
+      ignore_errors: true
+    - debug: var=output.cert_check
+    - name: Copy Current Cert on failed check
+      win_copy: 
+        src: /etc/ansible/ApplicationName-files/ApplicationName-2019.pfx
+        dest: C:\\installs
+      when: output.cert_check == "fail"
+    - name: Install Cert on failed check
+      script: /etc/ansible/ApplicationName-files/scripts/certswaphttps.bat
+      when: output.cert_check == "fail"
+    - name: Create Date Folder
+      win_file: 
+        path: C:\Installs\{{ apppath }} 
+        state: directory
+    - name: Create Temp Folder
+      win_file: 
+        path: C:\Temp
+        state: directory
+    - name: Create Prisma extracts Folder
+      win_file: 
+        path: C:\Installs\Prisma
+        state: directory
+    - name: Create Geometry Extracts Folder
+      win_file: 
+        path: C:\Installs\Geometry 
+        state: directory
+    - name: Copy ApplicationName Appserver Installation Files
+      win_copy: src=/etc/ansible/ApplicationName-files/{{ apppath }}/AppServerServices-6.0.{{ appversion }}.msi dest=c:\\installs\\{{ apppath }}\\AppServerServices-6.0.{{ appversion }}.msi
+    - name: Install MSMQ
+      win_feature:
+       name: MSMQ-server
+       State: present
+       restart: no
+    - name: Set MSMQ to auto
+      win_service:
+        name: msmq
+        state: started
+        start_mode: auto
+    - name: Install ApplicationName App Server
+      win_package: 
+          path: c:\\installs\\{{ apppath }}\\AppServerServices-6.0.{{ appversion }}.msi
+          extra_args: /qn
+    - name: Create App server Services for ApplicationName Server software
+      script: /etc/ansible/ApplicationName-files/scripts/createAppSVC.bat
+    - name: Set Service Recovery options
+      script: /etc/ansible/ApplicationName-files/scripts/set-srvrecovery-task.bat
+    - name: Copy Task Server key ApplicationName.ppk
+      win_copy: 
+         src: /etc/ansible/ApplicationName-files/ApplicationName.ppk
+         dest: C:\\Program Files (x86)\\ApplicationName\\ApplicationName.ppk
+    - name: Copy Task Server key ApplicationName-pg.ppk
+      win_copy: 
+         src: /etc/ansible/ApplicationName-files/ApplicationName-pg.ppk
+         dest: C:\\Program Files (x86)\\\ApplicationName\\ApplicationName-pg.ppk
+    - name: Copy TaskMonitor.exe.config
+      win_copy: 
+         src: /etc/ansible/ApplicationName-files/TaskMonitor.exe.config
+         dest: C:\\Program Files (x86)\\\ApplicationName\\WorkhorseSoftware.ApplicationName.Services.TaskMonitor.exe.config
+    - name: Set ApplicationName task Service to auto
+      win_service:
+        name: "ApplicationName50TaskService"
+        state: stopped
+        start_mode: manual
+    - name: Set ApplicationName Data Host Service to auto
+      win_service:
+        name: "ApplicationName Data Host"
+        state: stopped
+        start_mode: manual
+    - name: Set ApplicationName Event Monitor Service to auto
+      win_service:
+        name: "ApplicationName Event Monitor"
+        state: stopped
+        start_mode: manual
