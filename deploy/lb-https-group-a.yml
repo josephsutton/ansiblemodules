@@ -1,0 +1,25 @@
+---
+- name: Swap App server Active group
+  hosts: app-https-lb
+  vars:
+  tasks:
+    - name: update HAProxy config     
+      copy:
+        src: /etc/ansible/application-files/haproxy-group-a.cfg
+        dest: /etc/haproxy/haproxy.cfg
+      when: ansible_os_family == "RedHat"
+    - name: Restart HAProxy
+      systemd:
+        name: haproxy
+        state: restarted
+      when: ansible_os_family == "RedHat"
+#    - name: Update host file
+#      win_file:
+#        path: "c:\\windows\\system32\\drivers\\etc\\hosts"
+#        state: absent
+#      when: ansible_os_family == "Windows"
+#    - name: Copy new hosts file
+#      win_copy: 
+#        src: /etc/ansible/application-files/hosts-excelapp.txt
+#        dest: "c:\\windows\\system32\\drivers\\etc\\hosts"
+#      when: ansible_os_family == "Windows"
