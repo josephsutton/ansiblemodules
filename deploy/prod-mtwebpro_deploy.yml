@@ -1,0 +1,59 @@
+---
+- name: Deploy website Web App to Prod
+  hosts: prod-website
+  vars: 
+    builddate: 2017-12-01
+  tasks:
+    - name: Copy website Files
+      win_copy: src=/etc/ansible/application-files/website/website_{{ builddate }}.zip dest=c:\\installs\\website_{{ builddate }}.zip
+    - name: Cleaning up installs directory
+      script: /etc/ansible/application-files/scripts/win_filecleanup.ps1 -days 0 -path "c:\inetpub\wwwroot\website"
+    - name: Unzip deployment
+      script: /etc/ansible/application-files/scripts/extract-deployment.ps1 "c:\installs\website_{{ builddate }}.zip" "c:\inetpub\wwwroot\website"
+    - name: Modify web.config file disable custom error defautlt setting
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        insertafter: '<customErrors mode="Off" />'
+        line: '    <!--<customErrors mode="Off" />-->'
+        state: present
+    - name: Modify web.config file remove custom error default setting
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        regexp: '    <customErrors mode="Off" />'
+        state: absent
+    - name: Modify web.config enable custom errors settings
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        insertafter: '    <!--<customErrors mode="On" redirectMode="ResponseRewrite"/>-->'
+        line: '    <customErrors mode="On" redirectMode="ResponseRewrite"/>'
+        state: present
+    - name: Modify web.config file remove commented custom errors settings
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        regexp: '    <!--<customErrors mode="On" redirectMode="ResponseRewrite"/>-->'
+        state: absent
+    - name: Modify web.config file Custom Error pages enabled - line1
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        insertafter: '    <!--<httpErrors errorMode="Custom" existingResponse="Replace">'
+        line: '    <httpErrors errorMode="Custom" existingResponse="Replace">'
+        state: present
+    - name: Modify web.config file Custom Error pages enabled - line1
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        regexp: '    <!--<httpErrors errorMode="Custom" existingResponse="Replace">'
+        state: absent
+    - name: Modify web.config file Custom Error pages enabled - line2
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        insertafter: '    </httpErrors>-->'
+        line: '    </httpErrors>'
+        state: present
+    - name: Modify web.config file Custom Error pages enabled - line2
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\website\Web.config
+        regexp: '    </httpErrors>-->'
+        state: absent
+    - name: test webpage
+      win_uri: 
+        url: https://{{ansible_hostname}}.application.com

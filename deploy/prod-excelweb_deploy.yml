@@ -1,0 +1,34 @@
+---
+- name: Deploy excelweb to production
+  hosts: prod-excelweb
+  vars: 
+    builddate: 2017-11-20
+  tasks:
+    - name: Copy v50xlsx Files
+      win_copy: src=/etc/ansible/application-files/excelweb/v50xlsx_{{ builddate }}.zip dest=c:\\installs\\v50xlsx_{{ builddate }}.zip
+    - name: Cleaning up installs directory
+      script: /etc/ansible/application-files/scripts/win_filecleanup.ps1 -days 0 -path "C:\inetpub\wwwroot\Web Sites\v50xlsx"
+    - name: Unzip deployment
+      script: /etc/ansible/application-files/scripts/extract-deployment.ps1 "c:\installs\v50xlsx_{{ builddate }}.zip" "C:\inetpub\wwwroot\Web Sites\v50xlsx"
+    - name: Modify web.config file add prod tenant table
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\Web Sites\v50xlsx\Web.config
+        insertafter: '        <value>http://api-tenant-qa.application.com/</value>'
+        line: '        <value>http://api-tenant.application.com/</value>'
+        state: present
+    - name: Modify web.config file remove QA tenant table
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\Web Sites\v50xlsx\Web.config
+        regexp: '        <value>http://api-tenant-qa.application.com/</value>'
+        state: absent
+    - name: Modify web.config file add prod appserver
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\Web Sites\v50xlsx\Web.config
+        insertafter: '        <value>test-app-https.application.com</value>'
+        line: '        <value>app-https.application.com</value>'
+        state: present
+    - name: Modify web.config file remove test appserver
+      win_lineinfile:
+        path: C:\inetpub\wwwroot\Web Sites\v50xlsx\Web.config
+        regexp: '        <value>test-app-https.application.com</value>'
+        state: absent

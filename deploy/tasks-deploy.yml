@@ -1,0 +1,51 @@
+---
+- name: Release Update for application Task Servers
+  hosts: prod-tasks
+  vars: 
+     newver: 3939
+  tasks:
+    - name: Import variables and tasks
+      include_vars: 
+        dir: /etc/ansible/include_vars/
+    - name: Checking App server version
+      include_tasks: /etc/ansible/tasks/appsrv_mtver.yml
+    - name: Create Date Folder
+      win_file: path=c:\Installs\{{ newver }} state=directory
+    - name: Copy application App Server Installation
+      win_copy: src=/etc/ansible/application-files/{{ newver }}/AppServerServices.{{ newver }}.msi dest=c:\\Installs\\{{ newver }}\\AppServerServices.{{ newver }}.msi
+    - name: Stop Task 50 Monitor Service
+      win_service: 
+        name: "applicationTaskService"
+        state: stopped
+    - name: Uninstall App server
+      win_package: 
+          path: c:\\Installs\\{{ oldappsrvver }}\\AppServerServices.{{ oldappsrvver }}.msi
+          extra_args: /qn
+          present: absent
+    - name: Delete AppServer files
+      win_file: 
+          path: C:\\Program Files (x86)\\Application Server
+          state: absent
+    - name: Install application App Server
+      win_package: 
+          path: c:\\Installs\\{{ newver }}\\AppServerServices.{{ newver }}.msi
+          extra_args: /qn
+    - name: Copy Task Server key application.ppk
+      win_copy: 
+         src: /etc/ansible/application-files/application.ppk
+         dest: C:\\Program Files (x86)\\\application 5.0 Application Server Services\\application.ppk
+    - name: Copy Task Server key application-cient.ppk
+      win_copy: 
+         src: /etc/ansible/application-files/application-cient.ppk
+         dest: C:\\Program Files (x86)\\\application 5.0 Application Server Services\\application-cient.ppk
+    - name: Copy TaskMonitor.exe.config
+      win_copy: 
+         src: /etc/ansible/application-files/TaskMonitor.exe.config
+         dest: C:\\Program Files (x86)\\application\\Services.TaskMonitor.exe.config
+    - name: Set data host Service Recovery options
+      script: /etc/ansible/application-files/scripts/set-srvrecovery-task.bat
+    - name: Set Data Host Service to auto
+      win_service: 
+        name: "applicationTaskService"
+        state: restarted
+        start_mode: auto
